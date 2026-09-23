@@ -18,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 class Settings(BaseModel):
     # LLM
-    openai_api_key: str        = Field(default_factory=lambda: os.environ["OPENAI_API_KEY"])
+    openai_api_key: str        = os.getenv("OPENAI_API_KEY", "")
     openai_model: str          = os.getenv("OPENAI_MODEL",      "gpt-4o")
     openai_fast_model: str     = os.getenv("OPENAI_FAST_MODEL", "gpt-4o-mini")
 

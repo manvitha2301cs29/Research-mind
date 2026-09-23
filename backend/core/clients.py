@@ -19,16 +19,28 @@ cfg = get_settings()
 
 # ── LLM clients ──────────────────────────────────────────────────────────────
 
-def get_llm(fast: bool = False) -> ChatOpenAI:
+class MissingAPIKeyError(RuntimeError):
+    """Raised when neither the server nor the request supplies an OpenAI key."""
+
+
+def _resolve_key() -> str:
     from core.request_context import get_request_api_key
     key = get_request_api_key() or cfg.openai_api_key
+    if not key:
+        raise MissingAPIKeyError(
+            "No OpenAI API key: set OPENAI_API_KEY on the server or add your key in the app."
+        )
+    return key
+
+
+def get_llm(fast: bool = False) -> ChatOpenAI:
+    key = _resolve_key()
     model = cfg.openai_fast_model if fast else cfg.openai_model
     return ChatOpenAI(model=model, openai_api_key=key, temperature=0.2, streaming=True)
 
 
 def get_embeddings() -> OpenAIEmbeddings:
-    from core.request_context import get_request_api_key
-    key = get_request_api_key() or cfg.openai_api_key
+    key = _resolve_key()
     return OpenAIEmbeddings(openai_api_key=key)
 
 
@@ -41,13 +53,16 @@ VECTOR_DIM  = 1536   # text-embedding-ada-002 / text-embedding-3-small
 @lru_cache
 def get_qdrant_client() -> QdrantClient:
     url = cfg.qdrant_url
-    if "YOUR-CLUSTER-ID" in url:
-        log.warning(
-            "QDRANT_URL is still a placeholder — falling back to in-memory Qdrant. "
-            "RAG context won't persist. Set a real URL in backend/.env to enable it."
-        )
+    if not url or url == ":memory:" or "YOUR-CLUSTER-ID" in url:
+        log.warning("QDRANT_URL not set — using in-memory Qdrant (RAG data won't persist).")
         return QdrantClient(":memory:")
-    return QdrantClient(url=url, api_key=cfg.qdrant_api_key or None)
+    try:
+        client = QdrantClient(url=url, api_key=cfg.qdrant_api_key or None, timeout=5, check_compatibility=False)
+        client.get_collections()          # fail fast if the server isn't reachable
+        return client
+    except Exception as e:
+        log.warning("Qdrant at %s unreachable (%s) — falling back to in-memory Qdrant.", url, e)
+        return QdrantClient(":memory:")
 
 
 def ensure_collection() -> None:

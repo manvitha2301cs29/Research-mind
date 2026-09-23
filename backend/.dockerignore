@@ -7,3 +7,5 @@ uploads/
 exports/
 cache/
 .git/
+db/
+uploads/

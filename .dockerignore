@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+**/venv
+**/.venv
+**/__pycache__
+**/.env
+backend/db
+backend/cache
+backend/exports
+backend/uploads
+.git
+.claude
+*.mp4

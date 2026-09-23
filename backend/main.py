@@ -66,9 +66,20 @@ async def _startup():
     await asyncio.to_thread(init_db)
     await asyncio.to_thread(migrate_from_cache)
 
+from fastapi.responses import JSONResponse
+from core.clients import MissingAPIKeyError
+
+
+@app.exception_handler(MissingAPIKeyError)
+async def _missing_key_handler(request: Request, exc: MissingAPIKeyError):
+    return JSONResponse(status_code=401, content={"detail": str(exc)})
+
+
+_extra_origins = [o.strip() for o in __import__("os").getenv("CORS_ORIGINS", "").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[cfg.frontend_url, "http://localhost:5173", "http://localhost:3000"],
+    allow_origins=[cfg.frontend_url, "http://localhost:5173", "http://localhost:3000", *_extra_origins],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -260,7 +271,7 @@ async def explain(session_id: str, req: ExplainSectionRequest):
         return {"explanation": text, "unlocked_sections": session.unlocked_sections}
     except Exception as e:
         log.error("Explainer failed: %s", e)
-        raise HTTPException(500, str(e))
+        raise HTTPException(401 if isinstance(e, MissingAPIKeyError) else 500, str(e))
 
 
 # ── Chat ──────────────────────────────────────────────────────────────────────
@@ -286,7 +297,7 @@ async def chat(session_id: str, req: ChatRequest):
         return {"reply": reply}
     except Exception as e:
         log.error("Chat failed: %s", e)
-        raise HTTPException(500, str(e))
+        raise HTTPException(401 if isinstance(e, MissingAPIKeyError) else 500, str(e))
 
 
 # ── Quiz ──────────────────────────────────────────────────────────────────────
@@ -570,7 +581,7 @@ async def export_paper_pdf(paper_id: str):
         )
     except Exception as e:
         log.error("PDF export from DB failed: %s", e)
-        raise HTTPException(500, str(e))
+        raise HTTPException(401 if isinstance(e, MissingAPIKeyError) else 500, str(e))
 
 
 # ── Export (session-based) ────────────────────────────────────────────────────
@@ -588,7 +599,7 @@ async def export_pdf(session_id: str):
         )
     except Exception as e:
         log.error("PDF export failed: %s", e)
-        raise HTTPException(500, str(e))
+        raise HTTPException(401 if isinstance(e, MissingAPIKeyError) else 500, str(e))
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────

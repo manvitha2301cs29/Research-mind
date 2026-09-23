@@ -92,6 +92,30 @@ Visit **http://localhost:5173**
 
 ---
 
+## Deployment
+
+### Option A — one container (Render / Railway / Fly.io / any VM)
+
+The root `Dockerfile` builds the React app and serves it from FastAPI, so the whole app runs on a single port.
+
+```bash
+docker build -t researchmind .
+docker run -p 8000:8000 -e OPENAI_API_KEY=sk-... researchmind
+# open http://localhost:8000
+```
+
+**Render (free tier):** New → Web Service → connect this repo → Runtime: *Docker*. Add env var `OPENAI_API_KEY` (optional — without it, each user enters their own key in the app). Render sets `$PORT` automatically.
+
+Without `QDRANT_URL`, RAG uses an in-memory vector store (resets on restart). For persistence, create a free [Qdrant Cloud](https://cloud.qdrant.io) cluster and set `QDRANT_URL` + `QDRANT_API_KEY`.
+
+### Option B — Docker Compose (frontend + backend + Qdrant)
+
+```bash
+cp backend/.env.example backend/.env   # add OPENAI_API_KEY if you want a server-side key
+docker compose up -d --build
+# open http://localhost
+```
+
 ## Features
 
 | Feature | Description |
@@ -112,10 +136,12 @@ Visit **http://localhost:5173**
 
 | Variable | Required | Description |
 |---|---|---|
-| `OPENAI_API_KEY` | ✅ | Your OpenAI API key |
+| `OPENAI_API_KEY` | Optional | Server-side key. If empty, users enter their own key in the app |
 | `OPENAI_MODEL` | Optional | Default: `gpt-4o` |
 | `OPENAI_FAST_MODEL` | Optional | Default: `gpt-4o-mini` |
-| `QDRANT_URL` | Optional | Default: `http://localhost:6333` |
+| `QDRANT_URL` | Optional | Default: `http://localhost:6333`; falls back to in-memory if unreachable |
+| `QDRANT_API_KEY` | Optional | For Qdrant Cloud |
+| `CORS_ORIGINS` | Optional | Extra allowed origins, comma-separated (only if frontend is hosted separately) |
 | `SEMANTIC_SCHOLAR_API_KEY` | Optional | Increases rate limits |
 | `YOUTUBE_API_KEY` | Optional | For richer video results |
 

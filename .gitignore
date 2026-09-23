@@ -34,3 +34,11 @@ Thumbs.db
 # Logs
 *.log
 npm-debug.log*
+
+# Runtime data (never commit)
+backend/db/
+backend/cache/
+backend/exports/
+backend/uploads/
+.claude/
+*.mp4
