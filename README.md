@@ -2,6 +2,10 @@
 
 > AI-powered research platform — from paper upload to deep mastery.
 
+**🔗 Live demo:** [research-mind-lmvg.onrender.com](https://research-mind-lmvg.onrender.com/)
+
+> Note: hosted on Render's free tier — the app may take 30–50s to wake up if it's been idle. Bring your own OpenAI API key when using the hosted version (entered in-app).
+
 ## Architecture
 
 ```
